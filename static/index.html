@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LPU Parking Assistant</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="chat-shell">
+      <header class="chat-header">
+        <div class="brand-mark">LPU</div>
+        <div class="heading">
+          <h1>LPU Parking Assistant</h1>
+          <span id="memoryLine">Find available parking spots</span>
+        </div>
+        <div class="model-status">
+          <span class="pulse"></span>
+          Ready
+        </div>
+      </header>
+
+      <main id="chatMessages" class="chat-messages" aria-live="polite"></main>
+
+      <form id="chatForm" class="composer">
+        <input
+          id="messageInput"
+          type="text"
+          autocomplete="off"
+          aria-label="Message LPU Parking Assistant"
+          placeholder="Type a parking request or AI question"
+        />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
