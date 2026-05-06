@@ -13,6 +13,13 @@ class ParkingChatbotFlowTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         return response.get_json()
 
+    def test_health_endpoint(self):
+        response = self.client.get("/api/health")
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(data["frontend"], "React")
+
     def test_slot_filling_then_recommendation(self):
         first = self.ask("slot-flow", "LPU Main Gate")
         self.assertIn("What are you parking", first["reply"])

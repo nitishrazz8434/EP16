@@ -4,6 +4,8 @@ __pycache__/
 .venv/
 venv/
 env/
+node_modules/
+frontend/dist/
 *.log
 final-ui-*.png
 ui-check-*.png

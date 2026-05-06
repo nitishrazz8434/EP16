@@ -36,6 +36,19 @@ def index():
     return send_from_directory(app.static_folder, "index.html")
 
 
+@app.get("/api/health")
+def health():
+    return jsonify(
+        {
+            "ok": True,
+            "service": "LPU Parking Assistant API",
+            "frontend": "React",
+            "backend": "Flask",
+            "model": "TF-IDF + Linear SVM intents, Random Forest availability",
+        }
+    )
+
+
 @app.get("/api/lots")
 def lots():
     vehicle_type = request.args.get("vehicle", "car")

@@ -1,6 +1,6 @@
 # LPU Parking Assistant
 
-A Flask + scikit-learn chatbot that finds available parking spots around Lovely Professional University, Phagwara.
+A React + Flask + scikit-learn chatbot that finds available parking spots around Lovely Professional University, Phagwara.
 
 ## What It Does
 
@@ -13,7 +13,8 @@ A Flask + scikit-learn chatbot that finds available parking spots around Lovely 
 - Reserves a suggested spot and returns a reservation code.
 - Handles casual greetings and typo-style inputs such as `Hlo` and `libary`.
 - Answers short AI/demo questions such as ensemble learning, Random Forest, TF-IDF, SVM, dataset, and model workflow.
-- Shows a focused, mobile-friendly chat UI with practical LPU parking recommendations.
+- Uses a React frontend served by Flask, with API calls to `/api/chat`, `/api/reserve`, `/api/refresh`, `/api/lots`, `/api/model`, and `/api/health`.
+- Shows a focused, mobile-friendly chat UI with practical LPU parking recommendations, live result updates, quick replies, and reservation actions.
 
 ## Run
 
@@ -32,6 +33,14 @@ Run smoke tests:
 
 ```powershell
 python -m unittest discover -s tests
+```
+
+Rebuild the React frontend after editing `frontend/`:
+
+```powershell
+npm install
+npm run build
+python app.py
 ```
 
 ## Example Prompts
@@ -53,7 +62,9 @@ Cancel LPU-A1B2C3
 ## Main Files
 
 - `app.py` - Flask routes and chatbot session flow
+- `frontend/` - React source code
+- `static/` - production React build served by Flask
 - `smart_parking/nlp_model.py` - intent classifier and entity extraction
 - `smart_parking/parking_engine.py` - availability prediction, scoring, reservation logic
 - `data/parking_lots.json` - campus parking dataset
-- `static/` - web app UI
+- `tests/` - API and chatbot flow tests
