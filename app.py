@@ -89,11 +89,13 @@ def chat():
     entities = extractor.extract(message)
     intent = _override_intent(message, intent, entities)
     result = _handle_message(message, state, intent, entities)
+    response_intent = result.pop("intent_override", intent.name)
+    response_confidence = result.pop("confidence_override", intent.confidence)
     result.update(
         {
             "session_id": session_id,
-            "intent": intent.name,
-            "confidence": intent.confidence,
+            "intent": response_intent,
+            "confidence": response_confidence,
             "top_intents": intent.top,
             "entities": entities,
             "memory": {
@@ -205,12 +207,8 @@ def _handle_message(message: str, state: dict, intent, entities: dict) -> dict:
     if intent.name == "navigation":
         return _navigation_flow(state, entities)
 
-    if not entities and not state.get("location") and intent.confidence < 0.28:
-        return _response(
-            None,
-            "I did not catch that clearly. You can ask for LPU parking or ask a short AI concept question for the project demo.",
-            quick_replies=["Find parking", "What is ensemble learning?", "How this model works", "More areas"],
-        )
+    if not _should_enter_parking_flow(message, intent, entities):
+        return _fallback_flow(message, state)
 
     preferences = list(entities.get("preferences", []))
     if intent.name == "price_query" and "cheapest" not in preferences:
@@ -299,6 +297,46 @@ def _knowledge_flow(message: str, state: dict) -> dict | None:
             "The project uses an LPU parking dataset with lot capacity, current availability, vehicle support, location coordinates, price, features, safety score, and peak-hour patterns.",
         ),
         (
+            ["api", "rest api", "backend api"],
+            "An API is a way for the frontend and backend to communicate. In this project, the React UI calls Flask API routes like /api/chat, /api/reserve, /api/refresh, /api/model, and /api/health.",
+        ),
+        (
+            ["flask"],
+            "Flask is the Python web framework used for the backend. It serves the React build and exposes API endpoints for chatbot replies, reservations, live refresh, model info, and parking lots.",
+        ),
+        (
+            ["react", "reactjs", "react ui", "frontend"],
+            "React is the frontend library used for the chat interface. It manages messages, quick replies, parking cards, reservation buttons, and live API state without manually editing the DOM.",
+        ),
+        (
+            ["vite"],
+            "Vite is the frontend build tool. It compiles the React source from the frontend folder into the static folder so Flask can serve the final project from one URL.",
+        ),
+        (
+            ["scikit-learn", "sklearn"],
+            "Scikit-learn is the machine learning library used here. It provides the TF-IDF vectorizer, Linear SVM classifier, and Random Forest regressor used by the chatbot backend.",
+        ),
+        (
+            ["nlp", "natural language processing"],
+            "NLP means Natural Language Processing. In this project it helps convert user text into intent and entities, such as finding parking, choosing a vehicle, selecting a destination, or asking for price.",
+        ),
+        (
+            ["accuracy", "confidence", "prediction confidence"],
+            "The confidence shown in this project represents how reliable the current parking availability estimate is. It changes based on demand pressure, live free-space values, and whether a lot is busy or limited.",
+        ),
+        (
+            ["limitations", "limitation", "future scope", "future work"],
+            "The main limitation is that live parking data is simulated for the college demo. Future scope would connect real sensors, ANPR cameras, RFID gates, or a database feed for actual real-time availability.",
+        ),
+        (
+            ["database", "db"],
+            "This version uses a JSON dataset for easy college-project setup. In a production version, the same API could use MySQL, PostgreSQL, Firebase, or MongoDB for live lots, users, and reservations.",
+        ),
+        (
+            ["lovely professional university", "lpu campus", "campus"],
+            "Lovely Professional University is the campus location used by this project. The parking assistant is configured around LPU areas such as Main Gate, Central Library, Block 34, Uni Mall, hostels, auditorium, sports complex, and admin block.",
+        ),
+        (
             ["chatbot"],
             "A chatbot is a conversational interface. This one keeps session memory, asks missing follow-up questions, extracts parking details, and returns ranked LPU parking recommendations.",
         ),
@@ -307,12 +345,32 @@ def _knowledge_flow(message: str, state: dict) -> dict | None:
             "Deep learning uses neural networks with many layers. This project does not need a deep model because the data is structured and small, so TF-IDF, SVM, and Random Forest are faster and easier to explain.",
         ),
         (
-            ["artificial intelligence", "what is ai", " ai "],
+            ["artificial intelligence", "what is ai", "ai"],
             "Artificial Intelligence is software that performs tasks needing human-like reasoning, prediction, or language understanding. This project uses AI to understand parking requests and rank live parking options.",
         ),
         (
             ["which model", "what model", "model using", "model are you using", "how this model works", "how does this model work", "project work"],
             "This project uses a TF-IDF plus Linear SVM chatbot intent model, a rule-based entity extractor, and a Random Forest availability estimator. The final ranking considers live free spaces, walking distance, price, safety, facilities, and the selected LPU area.",
+        ),
+        (
+            ["architecture", "system design", "tech stack"],
+            "The architecture is React for the chatbot UI, Flask for REST APIs, scikit-learn for ML models, and a JSON parking dataset for campus lots. React sends chat messages to Flask, Flask runs NLP plus ranking, and the UI renders the returned cards.",
+        ),
+        (
+            ["algorithm", "algorithms used", "which algorithm"],
+            "The main algorithms are TF-IDF for text features, Linear SVM for intent classification, rule-based entity extraction for slots, and Random Forest Regression for parking availability estimation.",
+        ),
+        (
+            ["features", "project features"],
+            "Key features include conversational slot filling, LPU location understanding, vehicle support, cheapest and nearest ranking, live simulated availability, reservation codes, details, directions, and AI concept answers for viva questions.",
+        ),
+        (
+            ["advantage", "advantages", "benefits"],
+            "The advantage of this project is that a user can ask naturally instead of filling a form. It combines chatbot memory, ML prediction, ranking, and a React UI to quickly suggest practical parking options.",
+        ),
+        (
+            ["how to run", "run project", "start project"],
+            "To run the project, install Python requirements with pip install -r requirements.txt, build the React client with npm install and npm run build if needed, then start Flask with python app.py.",
         ),
         (
             ["real time", "realtime", "live data", "live parking"],
@@ -321,6 +379,18 @@ def _knowledge_flow(message: str, state: dict) -> dict | None:
         (
             ["what can you do", "help", "commands"],
             "I can find parking near LPU areas, compare cheapest or nearest options, show details, give directions, and hold a spot with a reservation code.",
+        ),
+        (
+            ["who are you", "your name", "what are you"],
+            "I am the LPU Parking Assistant, a React and Flask AI chatbot built to find available parking spots around Lovely Professional University.",
+        ),
+        (
+            ["who made you", "who created you", "developer"],
+            "This project was built as a college AI project. The implementation combines a React frontend, Flask backend, and scikit-learn models for parking search and project-question answers.",
+        ),
+        (
+            ["how are you", "how r u", "how do you do"],
+            "I am running fine and ready to help. You can ask a parking request like 'car near library' or an AI-project question like 'what is Random Forest?'.",
         ),
     ]
 
@@ -335,18 +405,23 @@ def _knowledge_flow(message: str, state: dict) -> dict | None:
         (
             "what is",
             "what are",
+            "define",
             "explain",
+            "tell me",
             "which model",
             "what model",
+            "why",
             "how does",
             "how this",
+            "how are",
             "is this",
             "does this",
             "do you",
             "can you",
+            "who are",
         )
     )
-    direct_help = lowered in {"help", "commands", "what can you do"}
+    direct_help = lowered in {"help", "commands", "what can you do", "menu"}
     topic_like = any(
         word in lowered
         for word in [
@@ -360,6 +435,27 @@ def _knowledge_flow(message: str, state: dict) -> dict | None:
             "machine",
             "artificial",
             "ai",
+            "api",
+            "flask",
+            "react",
+            "vite",
+            "scikit",
+            "sklearn",
+            "nlp",
+            "confidence",
+            "accuracy",
+            "limitation",
+            "future",
+            "database",
+            "campus",
+            "lpu",
+            "architecture",
+            "algorithm",
+            "features",
+            "advantage",
+            "benefit",
+            "run project",
+            "tech stack",
             "classification",
             "classifier",
             "regression",
@@ -373,7 +469,7 @@ def _knowledge_flow(message: str, state: dict) -> dict | None:
         ]
     )
     for keys, answer in answers:
-        if any(key in f" {lowered} " for key in keys) and (question_like or direct_help or topic_like):
+        if any(_contains_phrase(lowered, key) for key in keys) and (question_like or direct_help or topic_like):
             suffix = ""
             if state.get("location") and state.get("vehicle_type"):
                 suffix = " I can continue with your current parking search too."
@@ -381,9 +477,80 @@ def _knowledge_flow(message: str, state: dict) -> dict | None:
             else:
                 suffix = " Now tell me the LPU area where you need parking."
                 quick_replies = _location_replies()
-            return _response(None, f"{answer}{suffix}", cards=state.get("last_results", []), quick_replies=quick_replies)
+            return _response(
+                None,
+                f"{answer}{suffix}",
+                cards=state.get("last_results", []),
+                quick_replies=quick_replies,
+                intent_override="project_question",
+                confidence_override=0.96,
+            )
 
     return None
+
+
+def _contains_phrase(text: str, phrase: str) -> bool:
+    return bool(re.search(rf"(?<![a-z0-9]){re.escape(phrase.strip())}(?![a-z0-9])", text))
+
+
+def _should_enter_parking_flow(message: str, intent, entities: dict) -> bool:
+    if entities:
+        return True
+
+    lowered = message.lower()
+    parking_signals = [
+        "park",
+        "parking",
+        "spot",
+        "slot",
+        "space",
+        "lot",
+        "available",
+        "availability",
+        "empty",
+        "free",
+        "nearest",
+        "closest",
+        "cheapest",
+        "vehicle",
+        "car",
+        "bike",
+        "ev",
+        "scooter",
+        "scooty",
+        "direction",
+        "route",
+        "navigate",
+        "price",
+        "rate",
+        "cost",
+    ]
+    if any(re.search(rf"\b{re.escape(signal)}\b", lowered) for signal in parking_signals):
+        return True
+
+    return intent.name in {"find_parking", "check_availability", "price_query"} and intent.confidence >= 0.45
+
+
+def _fallback_flow(message: str, state: dict) -> dict:
+    lowered = message.lower().strip()
+    if lowered.startswith(("what", "why", "how", "who", "tell", "explain", "define")):
+        return _response(
+            None,
+            "I am focused on this parking-assistant project, so I can answer LPU parking requests and AI/project concepts like API, Flask, React, TF-IDF, SVM, Random Forest, dataset, or real-time simulation.",
+            cards=state.get("last_results", []),
+            quick_replies=["What is API?", "What is React?", "What is Random Forest?", "Find parking"],
+            intent_override="clarification",
+            confidence_override=0.88,
+        )
+
+    return _response(
+        None,
+        "I did not catch a parking location, vehicle, or project concept in that message. Try a direct request like 'car near library' or ask 'what is ensemble learning?'.",
+        cards=state.get("last_results", []),
+        quick_replies=["Car near Central Library", "Cheapest near Uni Mall", "What is API?", "More areas"],
+        intent_override="clarification",
+        confidence_override=0.84,
+    )
 
 
 def _parking_flow(state: dict, entities: dict, preferences: list[str]) -> dict:
@@ -562,7 +729,14 @@ def _reservation_reply(reservation: dict) -> str:
     )
 
 
-def _response(session_id: str | None, reply: str, cards: list[dict] | None = None, quick_replies: list[str] | None = None) -> dict:
+def _response(
+    session_id: str | None,
+    reply: str,
+    cards: list[dict] | None = None,
+    quick_replies: list[str] | None = None,
+    intent_override: str | None = None,
+    confidence_override: float | None = None,
+) -> dict:
     payload = {
         "reply": reply,
         "cards": cards or [],
@@ -570,6 +744,10 @@ def _response(session_id: str | None, reply: str, cards: list[dict] | None = Non
     }
     if session_id:
         payload["session_id"] = session_id
+    if intent_override:
+        payload["intent_override"] = intent_override
+    if confidence_override is not None:
+        payload["confidence_override"] = confidence_override
     return payload
 
 

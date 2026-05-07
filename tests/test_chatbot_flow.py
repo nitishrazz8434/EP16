@@ -55,6 +55,27 @@ class ParkingChatbotFlowTest(unittest.TestCase):
         self.assertIn("TF-IDF", model["reply"])
         self.assertIn("Random Forest", model["reply"])
 
+    def test_varied_project_questions_do_not_fall_into_same_parking_prompt(self):
+        cases = {
+            "what is api": "React UI calls Flask API",
+            "what is flask": "Python web framework",
+            "what is react": "frontend library",
+            "project features": "conversational slot filling",
+            "which algorithm is used": "TF-IDF",
+            "who are you": "LPU Parking Assistant",
+            "how are you": "running fine",
+            "what is photosynthesis": "focused on this parking-assistant project",
+        }
+        for index, (message, expected) in enumerate(cases.items()):
+            with self.subTest(message=message):
+                response = self.ask(f"varied-flow-{index}", message)
+                self.assertIn(expected, response["reply"])
+                self.assertNotEqual(response["reply"], "Which LPU area should I check near?")
+                if message != "what is photosynthesis":
+                    self.assertEqual(response["intent"], "project_question")
+                else:
+                    self.assertEqual(response["intent"], "clarification")
+
     def test_fuzzy_location_typo(self):
         response = self.ask("typo-flow", "libary")
         self.assertIn("Central Library", response["reply"])
