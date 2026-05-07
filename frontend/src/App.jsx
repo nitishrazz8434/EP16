@@ -1,17 +1,21 @@
 import {
   BatteryCharging,
+  Bot,
   Car,
   CheckCircle2,
   CircleParking,
   Clock3,
+  Gauge,
   IndianRupee,
+  Layers,
   LoaderCircle,
   MapPin,
+  MapPinned,
   Navigation,
-  Route,
   Send,
   ShieldCheck,
   Sparkles,
+  Wifi,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -232,13 +236,20 @@ export default function App() {
             <CircleParking size={24} strokeWidth={2.4} />
           </div>
           <div className="heading">
+            <span className="eyebrow">AI campus parking chatbot</span>
             <h1>LPU Parking Assistant</h1>
             <p>{memoryLine}</p>
             <span>{modelLine}</span>
           </div>
-          <div className="model-status" title="React frontend connected to Flask API">
-            <span className="pulse" />
-            Ready
+          <div className="header-actions">
+            <div className="model-status" title="React frontend connected to Flask API">
+              <span className="pulse" />
+              Ready
+            </div>
+            <div className="campus-chip" title="Configured for Lovely Professional University">
+              <MapPinned size={15} />
+              LPU Phagwara
+            </div>
           </div>
         </header>
 
@@ -257,12 +268,12 @@ export default function App() {
 
         <div className="live-strip">
           <span>
-            <Sparkles size={15} />
-            React UI connected to Flask API
+            <Wifi size={15} />
+            React to Flask API
           </span>
           <span>
-            <Route size={15} />
-            LPU campus routing
+            <Layers size={15} />
+            SVM + Random Forest
           </span>
           <span>
             <Clock3 size={15} />
@@ -277,14 +288,17 @@ export default function App() {
             submitMessage(input);
           }}
         >
-          <input
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            type="text"
-            autoComplete="off"
-            aria-label="Message LPU Parking Assistant"
-            placeholder="Ask parking or AI: car near library, cheapest near Uni Mall, what is ensemble learning"
-          />
+          <div className="input-wrap">
+            <Bot size={19} />
+            <input
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              type="text"
+              autoComplete="off"
+              aria-label="Message LPU Parking Assistant"
+              placeholder="Ask parking or AI: car near library, cheapest near Uni Mall, what is ensemble learning"
+            />
+          </div>
           <button type="submit" disabled={busy || !input.trim()} aria-label="Send message">
             {busy ? <LoaderCircle className="spin" size={20} /> : <Send size={19} />}
             <span>Send</span>
@@ -333,6 +347,7 @@ function ChatMessage({ message, busy, onChoice, onReserve }) {
 function ParkingCard({ lot, index, onReserve, busy }) {
   const occupancy = Math.min(100, Math.max(0, Number(lot.occupancy_percent || 0)));
   const confidence = Math.round(Number(lot.prediction_confidence || 0) * 100);
+  const freePercent = Math.round((Number(lot.spaces_available || 0) / Math.max(1, Number(lot.capacity || 1))) * 100);
 
   return (
     <article className="parking-card">
@@ -348,6 +363,26 @@ function ParkingCard({ lot, index, onReserve, busy }) {
         <span className="recommendation">{lot.recommendation || "Recommended"}</span>
       </div>
 
+      <div className="availability-summary">
+        <div>
+          <span>Available now</span>
+          <strong>{lot.spaces_available}</strong>
+          <small>of {lot.capacity} spaces</small>
+        </div>
+        <div>
+          <span>Open ratio</span>
+          <strong>{freePercent}%</strong>
+          <small>{confidence}% model confidence</small>
+        </div>
+      </div>
+
+      <div className="meter-label">
+        <span>
+          <Gauge size={14} />
+          Occupancy
+        </span>
+        <strong>{lot.occupancy_percent}%</strong>
+      </div>
       <div className="meter" aria-label={`${lot.occupancy_percent}% occupied`}>
         <span style={{ width: `${occupancy}%` }} />
       </div>
